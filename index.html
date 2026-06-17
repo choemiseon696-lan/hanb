@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>한빛머니 </title>
+  <title>한빛머니 | 맞춤 상담 안내</title>
   <meta name="description" content="비대면 간편상담, 고객 상황에 맞춘 서비스 안내 및 상담 접수" />
 
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18126831450"></script>
@@ -136,7 +136,7 @@
     }
     .mini span{color:#2563eb;font-weight:bold}
 
-    /* 공통 섹션 공통 디자인 */
+    /* 공통 섹션 디자인 */
     section{padding:90px 0}
     .title{text-align:center;font-size:34px;letter-spacing:-1.5px;margin:0 0 12px;color:#0f172a;font-weight:800}
     .lead{text-align:center;font-size:16px;color:#64748b;line-height:1.6;margin:0 0 50px}
@@ -228,6 +228,11 @@
     .policyLinks{display:flex;gap:12px;align-items:center;margin-top:20px;font-weight:700;font-size:13px;color:#2563eb}
     .policyLinks a:hover{text-decoration:underline}
 
+    /* 정돈된 리스트형 디자인 스타일 */
+    .info-list {margin:0 0 14px; padding:0; list-style:none;}
+    .info-list li {font-size:13px; line-height:2; color:#64748b; margin-bottom:4px;}
+    .info-list li strong {color:#334155; font-weight:700; inline-block; width:140px;}
+
     /* 약관 팝업 모달 */
     .modalOverlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:9999;align-items:center;justify-content:center;padding:20px}
     .modalOverlay.active{display:flex}
@@ -256,6 +261,7 @@
       .heroCard{min-height:auto}.loanDisplay{max-width:none}
       .grid3,.steps,.formGrid,.productCards{grid-template-columns:1fr}
       .businessInfo{padding:24px;border-radius:20px}.title{font-size:28px}section{padding:60px 0}
+      .info-list li {display:flex; flex-direction:column; margin-bottom:8px;}
     }
   </style>
 </head>
@@ -407,12 +413,12 @@
       </div>
       <div class="businessInfo">
         <h3>사업자 정보</h3>
-        <p>
-          <strong>상호</strong> : 우주캐피탈대부중개
-          <strong>대부중개업등록번호</strong> : 2023-충북청주-0011
-          <strong>소재지</strong> : 충청북도 청주시 청원구 내덕동 788-115
-          <strong>대표자</strong> : 강윤희
-        </p>
+        <ul class="info-list">
+          <li><strong>• 상호 :</strong> 우주캐피탈대부중개</li>
+          <li><strong>• 대부중개업등록번호 :</strong> 2023-충북청주-0011</li>
+          <li><strong>• 소재지 :</strong> 충청북도 청주시 청원구 내덕동 788-115</li>
+          <li><strong>• 대표자 :</strong> 강윤희</li>
+        </ul>
 
         <h3 class="subTitle">금융상품 안내 고지</h3>
         <p>
