@@ -371,12 +371,12 @@
             
             <div class="field">
               <label for="birth">생년월일</label>
-              <input id="birth" required placeholder="예: 19950512" maxlength="8" inputmode="numeric">
+              <input id="birth" required placeholder="예: 580241" maxlength="6" inputmode="numeric">
             </div>
 
             <div class="field">
               <label for="phone">연락처</label>
-              <input id="phone" required placeholder="010-0000-0000" inputmode="numeric">
+              <input id="phone" required placeholder="010-0000-0000" maxlength="13" inputmode="numeric">
             </div>
             <div class="field">
               <label for="amount">필요 금액</label>
@@ -562,17 +562,23 @@
       this.value = this.value.replace(/[^0-9]/g, '');
     });
 
-    document.getElementById("phone").addEventListener("input", function(){
-      let value = this.value.replace(/[^0-9]/g, '');
+document.getElementById("phone").addEventListener("input", function(){
+  let value = this.value.replace(/[^0-9]/g, '');
 
-      if(value.length < 4){
-        this.value = value;
-      }else if(value.length < 8){
-        this.value = value.replace(/(\d{3})(\d+)/, "$1-$2");
-      }else{
-        this.value = value.replace(/(\d{3})(\d{4})(\d+)/, "$1-$2-$3");
-      }
-    });
+  // 숫자 11자리까지만 허용
+  value = value.substring(0, 11);
+
+  if(value.length < 4){
+    this.value = value;
+  }else if(value.length < 8){
+    this.value = value.replace(/(\d{3})(\d+)/, "$1-$2");
+  }else{
+    this.value = value.replace(/(\d{3})(\d{4})(\d{0,4})/, "$1-$2-$3");
+  }
+
+  // 하이픈 포함 13자리까지만 허용
+  this.value = this.value.substring(0, 13);
+});
 
     document.getElementById("applyForm").addEventListener("submit", function(e){
       e.preventDefault();
@@ -595,8 +601,8 @@
         return;
       }
       
-      if(birth.length !== 8) {
-        alert("생년월일 8자리를 정확히 입력해주세요. (예: 19950512)");
+      if(birth.length !== 6) {
+        alert("생년월일 6자리를 정확히 입력해주세요. (예: 580241)");
         return;
       }
 
