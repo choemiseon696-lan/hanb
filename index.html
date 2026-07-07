@@ -594,80 +594,155 @@
     const SECRET = "dream_2026_lock";
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxb58C7vGfaV_Q0yTGinWp7u6e0dmGT5ytflPz7D_5rfVyGaWhCeP3sFGvNFg8nD9mk7g/exec";
 
+    const ALLOWED_AMOUNTS = [
+      "50만원 ~ 100만원",
+      "100만원 ~ 300만원",
+      "300만원 ~ 500만원",
+      "500만원 ~ 1000만원"
+    ];
+
+    const ALLOWED_CONSULTS = [
+      "생활자금 상담",
+      "추가자금 상담",
+      "서비스 안내 상담"
+    ];
+
+    const BLOCKED_TEST_PHONES = [
+      "01000000000",
+      "01000010001",
+      "01000010002",
+      "01000010003",
+      "01000010009",
+      "01011111111",
+      "01012345678",
+      "01099999999"
+    ];
+
+    const BLOCKED_TEST_NAMES = [
+      "TEST",
+      "test",
+      "테스트",
+      "NoSecret",
+      "WrongSecret",
+      "EmptySecret",
+      "checktest"
+    ];
+
     let isSubmitting = false;
 
     function openModal(id){
-      var el = document.getElementById(id);
-      if(el){ el.classList.add('active'); document.body.style.overflow = 'hidden'; }
+      const el = document.getElementById(id);
+      if(el){
+        el.classList.add("active");
+        document.body.style.overflow = "hidden";
+      }
     }
 
     function closeModal(id){
-      var el = document.getElementById(id);
-      if(el){ el.classList.remove('active'); document.body.style.overflow = ''; }
+      const el = document.getElementById(id);
+      if(el){
+        el.classList.remove("active");
+        document.body.style.overflow = "";
+      }
     }
 
     function closeModalOnBg(event, id){
-      if(event.target && event.target.id === id){ closeModal(id); }
+      if(event.target && event.target.id === id){
+        closeModal(id);
+      }
     }
 
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape'){
-        closeModal('privacyModal');
-        closeModal('termsModal');
+    function cleanText(value){
+      return String(value || "")
+        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+        .replace(/<[^>]*>/g, "")
+        .replace(/[<>]/g, "")
+        .replace(/javascript:/gi, "")
+        .replace(/onerror/gi, "")
+        .replace(/onload/gi, "")
+        .replace(/src=/gi, "")
+        .trim();
+    }
+
+    document.addEventListener("keydown", function(e){
+      if(e.key === "Escape"){
+        closeModal("privacyModal");
+        closeModal("termsModal");
       }
     });
 
-    // 생년월일 숫자 전용 필터링 스크립트 추가
     document.getElementById("birth").addEventListener("input", function(){
-      this.value = this.value.replace(/[^0-9]/g, '');
+      this.value = this.value.replace(/[^0-9]/g, "").slice(0, 6);
     });
 
-document.getElementById("phone").addEventListener("input", function(){
-  let value = this.value.replace(/[^0-9]/g, '');
+    document.getElementById("phone").addEventListener("input", function(){
+      let value = this.value.replace(/[^0-9]/g, "").slice(0, 11);
 
-  // 숫자 11자리까지만 허용
-  value = value.substring(0, 11);
+      if(value.length < 4){
+        this.value = value;
+      }else if(value.length < 8){
+        this.value = value.replace(/(\d{3})(\d+)/, "$1-$2");
+      }else{
+        this.value = value.replace(/(\d{3})(\d{4})(\d{0,4})/, "$1-$2-$3");
+      }
 
-  if(value.length < 4){
-    this.value = value;
-  }else if(value.length < 8){
-    this.value = value.replace(/(\d{3})(\d+)/, "$1-$2");
-  }else{
-    this.value = value.replace(/(\d{3})(\d{4})(\d{0,4})/, "$1-$2-$3");
-  }
-
-  // 하이픈 포함 13자리까지만 허용
-  this.value = this.value.substring(0, 13);
-});
+      this.value = this.value.slice(0, 13);
+    });
 
     document.getElementById("applyForm").addEventListener("submit", function(e){
       e.preventDefault();
 
-      const name = document.getElementById("name").value.trim();
-      const birth = document.getElementById("birth").value.trim(); // 생년월일 값 파싱
-      const phone = document.getElementById("phone").value.trim();
-      const amount = document.getElementById("amount").value;
-      const consult = document.getElementById("consult").value;
+      const name = cleanText(document.getElementById("name").value);
+      const birth = cleanText(document.getElementById("birth").value);
+      const phone = cleanText(document.getElementById("phone").value);
+      const amount = cleanText(document.getElementById("amount").value);
+      const consult = cleanText(document.getElementById("consult").value);
       const agree = document.getElementById("agree").checked;
       const submitBtn = document.getElementById("submitBtn");
+
+      const cleanPhone = phone.replace(/[^0-9]/g, "");
 
       if(!agree){
         alert("개인정보 수집 및 이용에 동의해주세요.");
         return;
       }
 
-      if(!name || !birth || !phone || !amount){
-        alert("모든 항목을 입력해주세요.");
-        return;
-      }
-      
-      if(birth.length !== 6) {
-        alert("생년월일 6자리를 정확히 입력해주세요. (예: 580241)");
+      if(!/^[가-힣a-zA-Z\s]{2,15}$/.test(name)){
+        alert("이름을 정확히 입력해주세요.");
         return;
       }
 
-      const cleanPhone = phone.replace(/[^0-9]/g, '');
-      const today = new Date().toISOString().slice(0,10);
+      if(BLOCKED_TEST_NAMES.includes(name)){
+        alert("정상적인 이름을 입력해주세요.");
+        return;
+      }
+
+      if(!/^[0-9]{6}$/.test(birth)){
+        alert("생년월일 6자리를 정확히 입력해주세요. 예: 580241");
+        return;
+      }
+
+      if(!/^010[0-9]{8}$/.test(cleanPhone)){
+        alert("연락처를 010-0000-0000 형식으로 입력해주세요.");
+        return;
+      }
+
+      if(BLOCKED_TEST_PHONES.includes(cleanPhone)){
+        alert("정상적인 연락처를 입력해주세요.");
+        return;
+      }
+
+      if(!ALLOWED_AMOUNTS.includes(amount)){
+        alert("필요 금액을 다시 선택해주세요.");
+        return;
+      }
+
+      if(!ALLOWED_CONSULTS.includes(consult)){
+        alert("상담 구분을 다시 선택해주세요.");
+        return;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
       const submitCounts = JSON.parse(localStorage.getItem("hanbitSubmitCounts") || "{}");
       const key = today + "_" + cleanPhone;
       const currentCount = submitCounts[key] || 0;
@@ -686,49 +761,58 @@ document.getElementById("phone").addEventListener("input", function(){
       submitBtn.disabled = true;
       submitBtn.innerText = "접수 중...";
 
-      // 구글 앱스 스크립트 전송 URL에 &birth 매개변수를 안전하게 내장 연동했습니다.
-      const url =
-        APPS_SCRIPT_URL
-        + "?secret=" + encodeURIComponent(SECRET)
-        + "&referer=" + encodeURIComponent(location.href)
-        + "&name=" + encodeURIComponent(name)
-        + "&birth=" + encodeURIComponent(birth)
-        + "&phone=" + encodeURIComponent(phone)
-        + "&amount=" + encodeURIComponent(amount)
-        + "&consult=" + encodeURIComponent(consult);
+      const formData = new URLSearchParams();
+      formData.append("secret", SECRET);
+      formData.append("referer", location.href);
+      formData.append("site", "hanbit");
+      formData.append("gender", "");
+      formData.append("name", name);
+      formData.append("birth", birth);
+      formData.append("phone", phone);
+      formData.append("time", "");
+      formData.append("loanDelay", "");
+      formData.append("telDelay", "");
+      formData.append("amount", amount);
+      formData.append("consult", consult);
 
-      fetch(url, {
-        method: "GET",
-        mode: "no-cors"
+      fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        body: formData
       })
-      .then(function(){
+      .then(function(res){
+        return res.text();
+      })
+      .then(function(result){
+        if(result !== "success"){
+          alert("접수가 제한되었습니다. 입력 정보를 다시 확인해주세요.");
+          throw new Error(result);
+        }
+
         submitCounts[key] = currentCount + 1;
         localStorage.setItem("hanbitSubmitCounts", JSON.stringify(submitCounts));
 
         if(typeof gtag === "function"){
-          gtag('event', 'conversion', {
-            'send_to': 'AW-18126831450/vxoPCLPmiLQcENr-xcND',
-            'value': 1.0,
-            'currency': 'KRW'
+          gtag("event", "conversion", {
+            "send_to": "AW-18126831450/vxoPCLPmiLQcENr-xcND",
+            "value": 1.0,
+            "currency": "KRW"
           });
         }
 
-        alert("접수완료. 상담사 배정후 연락드리겠습니다.");
-
+        alert("접수완료. 상담사 배정 후 연락드리겠습니다.");
         document.getElementById("applyForm").reset();
         document.getElementById("agree").checked = true;
-
-        isSubmitting = false;
-        submitBtn.disabled = false;
-        submitBtn.innerText = "상담 신청하기";
       })
-      .catch(function(){
-        alert("접수 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      .catch(function(error){
+        console.log("submit error:", error);
+      })
+      .finally(function(){
         isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.innerText = "상담 신청하기";
       });
     });
   </script>
+
 </body>
 </html>
