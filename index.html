@@ -14,6 +14,23 @@
     gtag('config', 'AW-18126831450');
   </script>
 
+  <script>
+    window.__hanbitTurnstileToken = "";
+
+    function onTurnstileSuccess(token){
+      window.__hanbitTurnstileToken = String(token || "");
+    }
+
+    function onTurnstileExpired(){
+      window.__hanbitTurnstileToken = "";
+    }
+
+    function onTurnstileError(){
+      window.__hanbitTurnstileToken = "";
+    }
+  </script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
   <link rel="icon" type="image/png" href="favicon.png">
 
   <style>
@@ -265,6 +282,23 @@
     .submit:hover{background:#1d4ed8}
     .submit:disabled{background:#cbd5e1;box-shadow:none;cursor:not-allowed}
 
+    /* 보안용 허니팟: 정상 사용자는 보이지 않음 */
+    .hp-field{
+      position:absolute !important;
+      left:-9999px !important;
+      top:auto !important;
+      width:1px !important;
+      height:1px !important;
+      overflow:hidden !important;
+      opacity:0 !important;
+      pointer-events:none !important;
+    }
+
+    .turnstile-wrap{
+      margin-top:18px;
+      min-height:1px;
+    }
+
     /* 고지사항 및 하단 푸터 */
     .notice{
       background:#ffffff;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;
@@ -464,6 +498,23 @@
             <span style="font-size:12px;color:#94a3b8;display:inline-block;margin-top:4px;">※ 입력 정보는 상담 접수 및 안내를 위한 참고용 데이터로만 활용됩니다.</span>
           </p>
 
+          <div class="hp-field" aria-hidden="true">
+            <label for="websiteField">웹사이트</label>
+            <input type="text" id="websiteField" tabindex="-1" autocomplete="off">
+          </div>
+
+          <div class="turnstile-wrap">
+            <div
+              class="cf-turnstile"
+              data-sitekey="0x4AAAAAAEMvwyyZ2ihWmjg3"
+              data-action="lead_submit"
+              data-appearance="interaction-only"
+              data-callback="onTurnstileSuccess"
+              data-expired-callback="onTurnstileExpired"
+              data-error-callback="onTurnstileError">
+            </div>
+          </div>
+
           <button class="submit" id="submitBtn" type="submit">상담 신청하기</button>
         </form>
       </div>
@@ -590,8 +641,15 @@
   </div>
 
   <script>
-    const SECRET = "dream_2026_lock";
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxb58C7vGfaV_Q0yTGinWp7u6e0dmGT5ytflPz7D_5rfVyGaWhCeP3sFGvNFg8nD9mk7g/exec";
+    /*
+     * ============================================================
+     * 한빛머니 보안 전송
+     * 브라우저 → Cloudflare Worker → Google Apps Script
+     * ============================================================
+     * HTML에는 Apps Script 주소 / Telegram Token / 서버 비밀키를 넣지 않습니다.
+     * Worker 주소는 공개되어도 되는 주소입니다.
+     */
+    const WORKER_URL = "https://dream-secure-gateway.choemiseon696.workers.dev";
 
     const ALLOWED_AMOUNTS = [
       "50만원 ~ 100만원",
@@ -614,19 +672,26 @@
       "01000010009",
       "01011111111",
       "01012345678",
-      "01099999999"
+      "01098765432",
+      "01099999999",
+      "01012121212",
+      "01010101010"
     ];
 
     const BLOCKED_TEST_NAMES = [
-      "TEST",
       "test",
       "테스트",
-      "NoSecret",
-      "WrongSecret",
-      "EmptySecret",
-      "checktest"
+      "tester",
+      "admin",
+      "nosecret",
+      "wrongsecret",
+      "emptysecret",
+      "checktest",
+      "null",
+      "undefined"
     ];
 
+    const PAGE_LOADED_AT = Date.now();
     let isSubmitting = false;
 
     function openModal(id){
@@ -663,6 +728,41 @@
         .trim();
     }
 
+    function normalizePhone(value){
+      return String(value || "").replace(/[^0-9]/g, "");
+    }
+
+    function todayKey(){
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function isObviouslyFakePhone(phone){
+      const last8 = String(phone || "").slice(3);
+
+      if(BLOCKED_TEST_PHONES.includes(phone)){
+        return true;
+      }
+
+      if(/^(\d)\1{7}$/.test(last8)){
+        return true;
+      }
+
+      if(/^(\d{2})\1{3}$/.test(last8)){
+        return true;
+      }
+
+      const obviousSequences = [
+        "12345678",
+        "23456789",
+        "98765432",
+        "87654321",
+        "01234567",
+        "76543210"
+      ];
+
+      return obviousSequences.includes(last8);
+    }
+
     document.addEventListener("keydown", function(e){
       if(e.key === "Escape"){
         closeModal("privacyModal");
@@ -688,7 +788,7 @@
       this.value = this.value.slice(0, 13);
     });
 
-    document.getElementById("applyForm").addEventListener("submit", function(e){
+    document.getElementById("applyForm").addEventListener("submit", async function(e){
       e.preventDefault();
 
       const name = cleanText(document.getElementById("name").value);
@@ -697,9 +797,10 @@
       const amount = cleanText(document.getElementById("amount").value);
       const consult = cleanText(document.getElementById("consult").value);
       const agree = document.getElementById("agree").checked;
+      const websiteField = cleanText(document.getElementById("websiteField").value);
       const submitBtn = document.getElementById("submitBtn");
 
-      const cleanPhone = phone.replace(/[^0-9]/g, "");
+      const cleanPhone = normalizePhone(phone);
 
       if(!agree){
         alert("개인정보 수집 및 이용에 동의해주세요.");
@@ -711,7 +812,7 @@
         return;
       }
 
-      if(BLOCKED_TEST_NAMES.includes(name)){
+      if(BLOCKED_TEST_NAMES.includes(name.toLowerCase())){
         alert("정상적인 이름을 입력해주세요.");
         return;
       }
@@ -726,7 +827,7 @@
         return;
       }
 
-      if(BLOCKED_TEST_PHONES.includes(cleanPhone)){
+      if(isObviouslyFakePhone(cleanPhone)){
         alert("정상적인 연락처를 입력해주세요.");
         return;
       }
@@ -741,10 +842,21 @@
         return;
       }
 
-      const today = new Date().toISOString().slice(0, 10);
-      const submitCounts = JSON.parse(localStorage.getItem("hanbitSubmitCounts") || "{}");
-      const key = today + "_" + cleanPhone;
-      const currentCount = submitCounts[key] || 0;
+      if(websiteField){
+        alert("접수 요청을 확인할 수 없습니다.");
+        return;
+      }
+
+      if(!window.__hanbitTurnstileToken){
+        alert("보안 확인이 완료되지 않았습니다. 잠시 후 다시 눌러주세요.");
+        return;
+      }
+
+      const submitCounts = JSON.parse(
+        localStorage.getItem("hanbitSubmitCounts") || "{}"
+      );
+      const key = todayKey() + "_" + cleanPhone;
+      const currentCount = Number(submitCounts[key] || 0);
 
       if(currentCount >= 2){
         alert("이미 2회 접수된 번호입니다. 상담 연락을 기다려주세요.");
@@ -756,39 +868,55 @@
         return;
       }
 
+      if(!WORKER_URL || !WORKER_URL.startsWith("https://")){
+        alert("보안 전송 주소 설정이 완료되지 않았습니다.");
+        return;
+      }
+
       isSubmitting = true;
       submitBtn.disabled = true;
       submitBtn.innerText = "접수 중...";
 
       const formData = new URLSearchParams();
-      formData.append("secret", SECRET);
-      formData.append("referer", location.href);
-      formData.append("site", "hanbit");
+      formData.append("turnstileToken", window.__hanbitTurnstileToken);
       formData.append("gender", "");
       formData.append("name", name);
       formData.append("birth", birth);
-      formData.append("phone", phone);
+      formData.append("phone", cleanPhone);
       formData.append("time", "");
       formData.append("loanDelay", "");
       formData.append("telDelay", "");
       formData.append("amount", amount);
       formData.append("consult", consult);
+      formData.append("loadedMs", String(Date.now() - PAGE_LOADED_AT));
+      formData.append("hp", websiteField);
 
-      fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: formData
-      })
-      .then(function(res){
-        return res.text();
-      })
-      .then(function(result){
-        if(result !== "success"){
-          alert("접수가 제한되었습니다. 입력 정보를 다시 확인해주세요.");
-          throw new Error(result);
+      try{
+        const response = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+          },
+          body: formData.toString()
+        });
+
+        let result = null;
+
+        try{
+          result = await response.json();
+        }catch(parseError){
+          result = null;
+        }
+
+        if(!response.ok || !result || result.ok !== true){
+          throw new Error("submit_rejected");
         }
 
         submitCounts[key] = currentCount + 1;
-        localStorage.setItem("hanbitSubmitCounts", JSON.stringify(submitCounts));
+        localStorage.setItem(
+          "hanbitSubmitCounts",
+          JSON.stringify(submitCounts)
+        );
 
         if(typeof gtag === "function"){
           gtag("event", "conversion", {
@@ -801,15 +929,25 @@
         alert("접수완료. 상담사 배정 후 연락드리겠습니다.");
         document.getElementById("applyForm").reset();
         document.getElementById("agree").checked = true;
-      })
-      .catch(function(error){
-        console.log("submit error:", error);
-      })
-      .finally(function(){
+        document.getElementById("websiteField").value = "";
+
+      }catch(error){
+        console.log("submit error");
+        alert("접수 확인에 실패했습니다. 잠시 후 다시 시도해주세요.");
+
+      }finally{
         isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.innerText = "상담 신청하기";
-      });
+
+        window.__hanbitTurnstileToken = "";
+
+        if(typeof turnstile !== "undefined"){
+          try{
+            turnstile.reset();
+          }catch(resetError){}
+        }
+      }
     });
   </script>
 
