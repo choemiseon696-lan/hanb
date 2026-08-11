@@ -282,7 +282,7 @@
     .submit:hover{background:#1d4ed8}
     .submit:disabled{background:#cbd5e1;box-shadow:none;cursor:not-allowed}
 
-    /* 보안용 허니팟: 정상 사용자는 보이지 않음 */
+    
     .hp-field{
       position:absolute !important;
       left:-9999px !important;
@@ -641,14 +641,7 @@
   </div>
 
   <script>
-    /*
-     * ============================================================
-     * 한빛머니 보안 전송
-     * 브라우저 → Cloudflare Worker → Google Apps Script
-     * ============================================================
-     * HTML에는 Apps Script 주소 / Telegram Token / 서버 비밀키를 넣지 않습니다.
-     * Worker 주소는 공개되어도 되는 주소입니다.
-     */
+
     const WORKER_URL = "https://dream-secure-gateway.choemiseon696.workers.dev";
 
     const ALLOWED_AMOUNTS = [
